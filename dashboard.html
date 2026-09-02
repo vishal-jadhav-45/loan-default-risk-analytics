@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Credit Risk Console — Loan Default Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0E1219;
+    --panel:#161C27;
+    --panel-2:#1C2432;
+    --line:#2A3444;
+    --text:#E7EAF0;
+    --muted:#8792A6;
+    --gold:#C9A24B;
+    --gold-dim:#8A7434;
+    --red:#D96A63;
+    --green:#5FAE85;
+    --blue:#6B9BD1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'IBM Plex Mono', monospace;}
+
+  .shell{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    min-height:100vh;
+  }
+
+  /* Sidebar */
+  .side{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:28px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .brand{
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    margin-bottom:2px;
+  }
+  .brand span{color:var(--gold);}
+  .brand-sub{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-bottom:34px;
+    line-height:1.5;
+  }
+  .nav-item{
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:13px;
+    color:var(--muted);
+    border-left:2px solid transparent;
+    cursor:default;
+  }
+  .nav-item.active{
+    color:var(--text);
+    background:var(--panel-2);
+    border-left:2px solid var(--gold);
+  }
+  .side-foot{
+    margin-top:auto;
+    font-size:10.5px;
+    color:#4E5768;
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+
+  /* Main */
+  .main{padding:26px 34px 50px;}
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  .topbar h1{
+    font-size:19px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .topbar p{
+    margin:0;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .period{
+    font-size:11.5px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:7px 12px;
+    border-radius:4px;
+  }
+  .period .num{color:var(--text);}
+
+  /* KPI row */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .kpi{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:16px 18px;
+  }
+  .kpi-label{
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:10px;
+  }
+  .kpi-value{
+    font-size:26px;
+    font-weight:500;
+  }
+  .kpi-value.risk{color:var(--red);}
+  .kpi-note{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:6px;
+  }
+
+  /* Grid of panels */
+  .grid{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:16px;
+  }
+  .grid-3{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+    margin-top:16px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:18px 20px 14px;
+  }
+  .panel-title{
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:2px;
+  }
+  .panel-sub{
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  .chart-wrap{position:relative; height:220px;}
+  .chart-wrap.tall{height:260px;}
+
+  .legend-row{
+    display:flex;
+    gap:16px;
+    margin-top:10px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .legend-row span{display:flex; align-items:center; gap:6px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th{
+    text-align:left;
+    color:var(--muted);
+    font-weight:500;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  td{
+    padding:8px 0;
+    border-bottom:1px solid #1E2634;
+  }
+  .bar-cell{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .bar-track{
+    flex:1;
+    height:5px;
+    background:#22293A;
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .bar-fill{height:100%; border-radius:3px;}
+
+  footer{
+    margin-top:26px;
+    font-size:11px;
+    color:#4E5768;
+  }
+
+  @media (max-width: 880px){
+    .shell{grid-template-columns:1fr;}
+    .side{display:none;}
+    .kpis{grid-template-columns:1fr 1fr;}
+    .grid{grid-template-columns:1fr;}
+    .grid-3{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">Meridian<span>Capital</span></div>
+    <div class="brand-sub">Credit Risk Console<br>Digital Lending Division</div>
+    <div class="nav-item active">Portfolio Overview</div>
+    <div class="nav-item">Applicant Segments</div>
+    <div class="nav-item">Model Monitoring</div>
+    <div class="nav-item">Disbursement Trend</div>
+    <div class="side-foot">
+      Data: Jan 2024 – Dec 2025<br>
+      Source: loan_applications_clean.csv<br>
+      Refreshed on load
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Loan Default Risk — Portfolio Overview</h1>
+        <p>Applicant-level lending data across 10 states, 3 employment segments, 6 loan purposes</p>
+      </div>
+      <div class="period">Reporting period&nbsp; <span class="num">Jan 2024 – Dec 2025</span></div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-label">Total Applications</div>
+        <div class="kpi-value num" id="kpi-apps">—</div>
+        <div class="kpi-note">across all states</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Disbursed</div>
+        <div class="kpi-value num" id="kpi-disb">—</div>
+        <div class="kpi-note">₹ crore, approved loans</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Portfolio Default Rate</div>
+        <div class="kpi-value num risk" id="kpi-default">—</div>
+        <div class="kpi-note">of disbursed loans</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg. Credit Score</div>
+        <div class="kpi-value num" id="kpi-score">—</div>
+        <div class="kpi-note">applicant pool average</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-title">Monthly Application Volume &amp; Disbursement</div>
+        <div class="panel-sub">Bars = applications received · Line = amount disbursed (₹ crore)</div>
+        <div class="chart-wrap tall"><canvas id="chartMonthly"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Default Rate by State</div>
+        <div class="panel-sub">Ranked, highest risk first</div>
+        <table id="stateTable"></table>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-title">Default Rate by Credit Band</div>
+        <div class="panel-sub">Poor / Fair / Good / Excellent</div>
+        <div class="chart-wrap"><canvas id="chartCredit"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Default Rate by Employment Type</div>
+        <div class="panel-sub">Salaried vs. self-employed vs. business owner</div>
+        <div class="chart-wrap"><canvas id="chartEmp"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Default Rate by Loan Purpose</div>
+        <div class="panel-sub">Medical &amp; vehicle loans skew riskiest</div>
+        <div class="chart-wrap"><canvas id="chartPurpose"></canvas></div>
+      </div>
+    </div>
+
+    <footer>Meridian Capital Credit Risk Console — internal analytics prototype, built on synthetic portfolio data for demonstration.</footer>
+  </main>
+</div>
+
+<script>
+const DATA = {"kpis": {"total_applications": 6000, "total_disbursed_cr": 152.01, "overall_default_rate": 32.9, "avg_credit_score": 680.0}, "state": {"labels": ["Rajasthan", "Tamil Nadu", "Delhi", "Uttar Pradesh", "West Bengal", "Punjab", "Gujarat", "Maharashtra", "Karnataka", "Telangana"], "applications": [421, 621, 642, 759, 473, 372, 528, 955, 730, 499], "default_rate": [35.15, 34.94, 34.74, 33.86, 33.62, 33.6, 32.2, 31.62, 31.1, 29.26]}, "credit_band": {"labels": ["Excellent", "Fair", "Good", "Poor"], "values": [16.55, 36.1, 24.82, 48.19]}, "employment": {"labels": ["Business Owner", "Salaried", "Self-Employed"], "values": [29.22, 30.59, 38.7]}, "purpose": {"labels": ["Business Expansion", "Education", "Home Renovation", "Medical", "Personal", "Vehicle"], "values": [32.16, 31.48, 33.05, 37.06, 31.76, 33.3]}, "monthly": {"labels": ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"], "applications": [276, 262, 256, 240, 239, 257, 264, 258, 249, 278, 242, 249, 248, 241, 237, 251, 251, 240, 252, 258, 239, 251, 234, 228], "disbursed_cr": [7.17, 6.7, 6.73, 5.79, 5.95, 6.1, 6.58, 6.93, 6.23, 6.66, 6.25, 6.37, 6.25, 6.22, 5.99, 6.17, 6.63, 6.29, 6.22, 6.8, 6.31, 6.64, 5.59, 5.45]}};
+
+Chart.defaults.color = '#8792A6';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.borderColor = '#2A3444';
+
+document.getElementById('kpi-apps').textContent = DATA.kpis.total_applications.toLocaleString('en-IN');
+document.getElementById('kpi-disb').textContent = '₹' + DATA.kpis.total_disbursed_cr + 'Cr';
+document.getElementById('kpi-default').textContent = DATA.kpis.overall_default_rate + '%';
+document.getElementById('kpi-score').textContent = DATA.kpis.avg_credit_score;
+
+// Monthly combo chart
+new Chart(document.getElementById('chartMonthly'), {
+  data: {
+    labels: DATA.monthly.labels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Applications',
+        data: DATA.monthly.applications,
+        backgroundColor: '#2E3A52',
+        borderRadius: 2,
+        yAxisID: 'y'
+      },
+      {
+        type: 'line',
+        label: 'Disbursed (₹ Cr)',
+        data: DATA.monthly.disbursed_cr,
+        borderColor: '#C9A24B',
+        backgroundColor: '#C9A24B',
+        tension: 0.3,
+        pointRadius: 2,
+        yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode: 'index', intersect: false},
+    plugins: {legend: {display: true, labels: {boxWidth: 10, padding: 14}}},
+    scales: {
+      x: {ticks: {maxRotation: 90, minRotation: 90, font: {size: 9}}, grid: {display: false}},
+      y: {position: 'left', title: {display: true, text: 'Applications'}, grid: {color: '#1E2634'}},
+      y1: {position: 'right', title: {display: true, text: '₹ Crore'}, grid: {display: false}}
+    }
+  }
+});
+
+// Credit band chart
+new Chart(document.getElementById('chartCredit'), {
+  type: 'bar',
+  data: {
+    labels: DATA.credit_band.labels,
+    datasets: [{
+      data: DATA.credit_band.values,
+      backgroundColor: ['#D96A63','#D6934F','#7FA6D6','#5FAE85'],
+      borderRadius: 3
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {legend: {display: false}},
+    scales: {
+      x: {grid: {display: false}},
+      y: {title: {display: true, text: 'Default rate %'}, grid: {color: '#1E2634'}}
+    }
+  }
+});
+
+// Employment chart
+new Chart(document.getElementById('chartEmp'), {
+  type: 'bar',
+  data: {
+    labels: DATA.employment.labels,
+    datasets: [{
+      data: DATA.employment.values,
+      backgroundColor: '#6B9BD1',
+      borderRadius: 3
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {legend: {display: false}},
+    scales: {
+      x: {title: {display: true, text: 'Default rate %'}, grid: {color: '#1E2634'}},
+      y: {grid: {display: false}}
+    }
+  }
+});
+
+// Purpose chart
+new Chart(document.getElementById('chartPurpose'), {
+  type: 'bar',
+  data: {
+    labels: DATA.purpose.labels,
+    datasets: [{
+      data: DATA.purpose.values,
+      backgroundColor: '#C9A24B',
+      borderRadius: 3
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {legend: {display: false}},
+    scales: {
+      x: {title: {display: true, text: 'Default rate %'}, grid: {color: '#1E2634'}},
+      y: {grid: {display: false}, ticks: {font: {size: 9.5}}}
+    }
+  }
+});
+
+// State table
+const maxRate = Math.max(...DATA.state.default_rate);
+const tbl = document.getElementById('stateTable');
+let html = '<tr><th>State</th><th>Applications</th><th>Default Rate</th></tr>';
+DATA.state.labels.forEach((s, i) => {
+  const rate = DATA.state.default_rate[i];
+  const apps = DATA.state.applications[i];
+  const pct = (rate / maxRate * 100).toFixed(0);
+  const color = rate > 32 ? '#D96A63' : (rate > 28 ? '#D6934F' : '#5FAE85');
+  html += `<tr>
+    <td>${s}</td>
+    <td class="num">${apps.toLocaleString('en-IN')}</td>
+    <td>
+      <div class="bar-cell">
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color}"></div></div>
+        <span class="num" style="width:42px; text-align:right;">${rate}%</span>
+      </div>
+    </td>
+  </tr>`;
+});
+tbl.innerHTML = html;
+</script>
+</body>
+</html>
