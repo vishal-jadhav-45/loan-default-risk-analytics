@@ -57,6 +57,10 @@ A digital lending NBFC wants to understand **which applicant segments default mo
 
 SQL (SQLite) · Python · Pandas · NumPy · Matplotlib · Seaborn · Scikit-learn · Exploratory Data Analysis · Feature Engineering · Data Cleaning · Logistic Regression · Model Evaluation (ROC-AUC, Precision/Recall) · Interactive Dashboard Design
 
+## Dashboard Preview
+![Dashboard]<img width="1728" height="837" alt="image" src="https://github.com/user-attachments/assets/77ad3f8a-61fa-40ac-a751-bd988f61e687" />
+
+
 ## How to Run
 
 1. Open `Loan_Default_Risk_Analytics.ipynb` in Jupyter Notebook, JupyterLab, or Google Colab (upload `loan_applications_raw.csv` alongside it).
